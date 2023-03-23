@@ -56,14 +56,9 @@ export class MainScene {
 		this.scene.background = new THREE.Color(0xffffff);
 	}
 	initCamera() {
-		this.camera = new THREE.PerspectiveCamera(
-			45,
-			window.innerWidth / window.innerHeight,
-			0.1,
-			1000
-		);
-		this.camera.position.z = 100;
-		this.camera.position.y = 50;
+		this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 100);
+		this.camera.position.z = -200;
+		this.camera.position.y = 90;
 		this.camera.position.x = -50;
 	}
 	initOrbitControls() {
