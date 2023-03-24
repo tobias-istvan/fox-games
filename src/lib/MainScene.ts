@@ -14,17 +14,9 @@ export class MainScene {
 	protected scene = new THREE.Scene();
 
 	private clock: THREE.Clock = new THREE.Clock();
-	protected renderer = new THREE.WebGLRenderer();
-	protected camera = new THREE.PerspectiveCamera(
-		45,
-		window.innerWidth / window.innerHeight,
-		0.1,
-		1000
-	);
-	protected directionalLight = new THREE.DirectionalLight(0x9090aa);
-	protected hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xffffff);
-	protected ambientLight = new THREE.AmbientLight(0xffffff);
-	protected orbitControls: OrbitControls;
+	protected renderer!: THREE.WebGLRenderer;
+	protected camera!: THREE.PerspectiveCamera;
+	protected orbitControls!: OrbitControls;
 
 	private keyState = new Map(KEYS.map((key) => [key, false]));
 	private _characters: Character[] = [];
@@ -64,26 +56,34 @@ export class MainScene {
 	initOrbitControls() {
 		this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.orbitControls.enableDamping = true;
-		this.orbitControls.minDistance = 5;
-		this.orbitControls.maxDistance = 15;
-		this.orbitControls.enablePan = false;
-		this.orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
+		this.orbitControls.dampingFactor = 0.04;
+		this.orbitControls.minDistance = 15;
+		this.orbitControls.maxDistance = 40;
+		this.orbitControls.enableRotate = true;
+		this.orbitControls.enableZoom = true;
+		this.orbitControls.maxPolarAngle = Math.PI / 2.5;
 		this.orbitControls.update();
 	}
 
 	initLights() {
-		this.directionalLight.position.set(-10, 10, -10).normalize();
-		this.scene.add(this.directionalLight);
-		this.hemisphereLight.position.set(1, 1, 1);
-		this.scene.add(this.hemisphereLight);
-		this.scene.add(this.ambientLight);
+		// const directionalLight = new THREE.DirectionalLight(0x9090aa);
+		const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xffffff);
+		// const ambientLight = new THREE.AmbientLight(0xffffff);
+		// directionalLight.position.set(-10, 10, -10).normalize();
+		// this.scene.add(directionalLight);
+		hemisphereLight.position.set(1, 1, 1);
+		this.scene.add(hemisphereLight);
+		// this.scene.add(ambientLight);
+		const ambient = new THREE.AmbientLight(0xa0a0fc, 0.82);
+		this.scene.add(ambient);
+
+		const sunLight = new THREE.DirectionalLight(0xe8c37b, 1);
+		sunLight.position.set(-69, 44, 14);
+		this.scene.add(sunLight);
 	}
 
 	initEnvironment() {
-		// const geometry = new THREE.BoxGeometry(1, 1, 1);
-		// const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-		// const cube = new THREE.Mesh(geometry, material);
-		// this.scene.add(cube);
+		this.scene.add(new THREE.GridHelper(50, 50));
 	}
 
 	setCameraPosition(x: number, y: number, z: number) {
@@ -150,17 +150,16 @@ export class MainScene {
 		this.setKeyStateFromKeyboardEvent(event, 'up');
 	}
 
-	addCharacter(
-		character: Character,
-		position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
-	) {
+	addCharacter(character: Character, position?: THREE.Vector3) {
 		if (!character.loaded) {
 			return character.on?.('loaded', () => {
 				this.addCharacter(character);
 			});
 		}
 		if (character.scene) {
-			character.scene.position.set(position.x, position.y, position.z);
+			if (position) {
+				character.scene.position.set(position.x, position.y, position.z);
+			}
 			this.scene.add(character.scene);
 			this._characters.push(character);
 			this.animate();

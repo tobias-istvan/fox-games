@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { Events } from './Events';
-import { DIRECTIONS, KEYS } from '../utils/keys';
+import { DIRECTIONS, DIRECTION_FORWARD, KEYS } from '../utils/keys';
 
 export type CharacterOptions = {
 	name: string;
@@ -17,11 +17,14 @@ export class Character {
 	fadeDuration = 0.2;
 
 	private keyState = new Map(KEYS.map((key) => [key, false]));
+	private position = new THREE.Vector3(0, 0, 0);
 
 	private _hunger = 0;
 	private _thirst = 0;
 	private _tiredness = 0;
 	private _matingUrge = 0;
+	private runVelocity = 5;
+	private walkVelocity = 2.2;
 
 	private loader: GLTFLoader = new GLTFLoader();
 	private mixer: THREE.AnimationMixer | undefined;
@@ -42,7 +45,6 @@ export class Character {
 		this.name = name;
 		this.model = model;
 		this.defaultAnimationName = defaultClipName;
-		// this.animationName = this.defaultAnimationName;
 
 		this.loader = new GLTFLoader();
 
@@ -136,6 +138,13 @@ export class Character {
 				}
 				this.animationName = nextAnimationName;
 			}
+		}
+
+		if (direction) {
+			this.character.scene.position.z +=
+				(keyState.get('shift') ? this.runVelocity : this.walkVelocity) *
+				delta *
+				(direction === DIRECTION_FORWARD ? 1 : -1);
 		}
 
 		this.mixer.update(delta);
