@@ -8,5 +8,6 @@ export class Fox extends Player {
       modelPath: 'assets/models/Fox.glb',
       ...options
     });
+    this.runAnimationName = 'Gallop';
   }
 }

@@ -13,6 +13,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { Fox } from './Fox';
 import type { Player } from './Player';
+import { Soldier } from './Soldier';
 
 const maxZoomOut = 1000;
 
@@ -49,6 +50,7 @@ export class MainScene {
     this.addFloor();
 
     this.character = new Fox({ camera: this.camera });
+    // this.character = new Soldier({ camera: this.camera });
     this.initCharacter();
 
     this.animate();

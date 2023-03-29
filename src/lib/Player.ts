@@ -18,29 +18,31 @@ export class Player extends EventDispatcher {
 
   private keyboardController: KeyboardController;
 
-  private _hunger = 0;
-  private _thirst = 0;
-  private _tiredness = 0;
-  private _matingUrge = 0;
-  private velocityMultiplier = 5;
-  private velocity = 0.03;
-  private turnVelocity = 0.005;
+  protected _hunger = 0;
+  protected _thirst = 0;
+  protected _tiredness = 0;
+  protected _matingUrge = 0;
+  protected velocityMultiplier = 5;
+  protected velocity = 0.03;
+  protected turnVelocity = 0.005;
+  protected walkAnimationName = 'Walk';
+  protected runAnimationName = 'Run';
 
-  private loader: GLTFLoader = new GLTFLoader();
-  private mixer: THREE.AnimationMixer | undefined;
+  protected loader: GLTFLoader = new GLTFLoader();
+  protected mixer: THREE.AnimationMixer | undefined;
   protected _scene: THREE.Group | undefined;
   protected _loaded = false;
 
   readonly name: string;
-  private modelPath: string;
-  private camera: THREE.Camera;
+  protected modelPath: string;
+  protected camera: THREE.Camera;
 
   public error: ErrorEvent | undefined;
 
   public model: GLTF | undefined;
-  private _animations: Map<string, THREE.AnimationAction> = new Map();
-  private animationName: string | undefined;
-  private defaultAnimationName: string;
+  protected _animations: Map<string, THREE.AnimationAction> = new Map();
+  protected animationName: string | undefined;
+  protected defaultAnimationName: string;
 
   constructor({
     name,
@@ -158,8 +160,8 @@ export class Player extends EventDispatcher {
     const nextAnimationName = !this.isMoving
       ? this.defaultAnimationName
       : isRunning
-      ? 'Gallop'
-      : 'Walk';
+      ? this.runAnimationName
+      : this.walkAnimationName;
 
     if (this.animationName !== nextAnimationName) {
       const toPlay = this._animations.get(nextAnimationName);
