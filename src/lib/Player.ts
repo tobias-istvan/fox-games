@@ -1,101 +1,98 @@
-import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { Events } from './Events';
-import {
-  DIRECTIONS,
-  DIRECTION_BACKWARD,
-  DIRECTION_FORWARD,
-  DIRECTION_LEFT,
-  DIRECTION_RIGHT,
-  KEYS
-} from '../utils/keys';
+import { DIRECTION_FORWARD, DIRECTION_LEFT, DIRECTION_RIGHT, SHIFT, SPACE } from '../utils/keys';
+import { AnimationClip, AnimationMixer, EventDispatcher, Vector3 } from 'three';
+import { KeyboardController } from './KeyboardController';
+import { MouseController } from './MouseController';
 
-export type CharacterOptions = {
+export type PlayerOptions = {
   name: string;
-  model: string;
+  modelPath: string;
   defaultAnimationName: string;
+  camera: THREE.Camera;
 };
-export class Player {
-  emit: ((eventName: string, data?: CustomEventInit) => void) | undefined;
-  on: ((eventName: string, callback: (event: CustomEvent) => void) => void) | undefined;
+export class Player extends EventDispatcher {
   events = new Events(this);
   fadeDuration = 0.2;
 
-  private keyState = new Map(KEYS.map((key) => [key, false]));
-  private position = new THREE.Vector3(0, 0, 0);
+  private keyboardController: KeyboardController;
 
   private _hunger = 0;
   private _thirst = 0;
   private _tiredness = 0;
   private _matingUrge = 0;
-  private runVelocity = 7;
-  private walkVelocity = 2.1;
+  private velocityMultiplier = 5;
+  private velocity = 0.03;
   private turnVelocity = 0.005;
 
   private loader: GLTFLoader = new GLTFLoader();
   private mixer: THREE.AnimationMixer | undefined;
-  protected _scene: THREE.Group | undefined;
+  protected scene: THREE.Group | undefined;
   protected _loaded = false;
 
-  private model: string;
   readonly name: string;
+  private modelPath: string;
+  private camera: THREE.Camera;
 
   public error: ErrorEvent | undefined;
 
-  public character: GLTF | undefined;
+  public model: GLTF | undefined;
   private _animations: Map<string, THREE.AnimationAction> = new Map();
   private animationName: string | undefined;
   private defaultAnimationName: string;
 
-  constructor({ name, model, defaultAnimationName: defaultClipName }: CharacterOptions) {
+  constructor({
+    name,
+    modelPath: model,
+    defaultAnimationName: defaultClipName,
+    camera
+  }: PlayerOptions) {
+    super();
     this.name = name;
-    this.model = model;
+    this.modelPath = model;
+    this.camera = camera;
     this.defaultAnimationName = defaultClipName;
+
+    this.keyboardController = new KeyboardController(DIRECTION_FORWARD);
+
+    this._animations = new Map();
 
     this.loader = new GLTFLoader();
 
     this.loadModel(model);
   }
 
-  get scene() {
-    return this._scene;
-  }
   get loaded() {
     return this._loaded;
+  }
+  get isMoving() {
+    return [...DIRECTION_FORWARD, ...DIRECTION_LEFT, ...DIRECTION_RIGHT].some((key) =>
+      this.keyboardController.isPressed(key)
+    );
   }
 
   loadModel(modelPath: string) {
     if (modelPath) {
-      this.model = modelPath;
+      this.modelPath = modelPath;
     }
     this.loader.load(
-      this.model,
+      this.modelPath,
       (gltf) => {
         try {
-          this.character = gltf;
-          this._scene = gltf.scene;
-          this._scene.traverse((object: object) => {
-            if ('isMesh' in object && object.isMesh && 'castShadow' in object) {
-              object.castShadow = true;
-            }
-          });
-          this._animations = new Map();
-          this.mixer = new THREE.AnimationMixer(this._scene);
-          this.character.animations.forEach((a: THREE.AnimationClip) => {
-            if (!this.mixer) {
-              return;
-            }
-            this._animations.set(a.name, this.mixer.clipAction(a));
-          });
-          this._scene.rotateY(Math.PI);
+          this.model = gltf;
+          this.mixer = new AnimationMixer(gltf.scene);
+          this.registerAnimations(gltf.animations);
+          this.setCamera(this.setScene(gltf.scene));
           this._loaded = true;
-          this.emit?.('loaded', {
-            detail: {
-              model: gltf
-            }
-          });
+          this.dispatchEvent(
+            new CustomEvent('loaded', {
+              detail: {
+                model: gltf
+              }
+            })
+          );
         } catch (error) {
           console.error(error);
         }
@@ -108,31 +105,59 @@ export class Player {
     );
   }
 
+  registerAnimations(animations: THREE.AnimationClip[]) {
+    animations.forEach((a: THREE.AnimationClip) => {
+      if (!this.mixer) {
+        return;
+      }
+      console.info(a.name);
+      this._animations.set(a.name, this.mixer.clipAction(a));
+    });
+  }
+
+  setScene(scene: THREE.Group) {
+    scene.traverse((object: object) => {
+      if ('isMesh' in object && object.isMesh && 'castShadow' in object) {
+        object.castShadow = true;
+      }
+    });
+    this.scene = scene;
+    return this.scene;
+  }
+
+  setCamera(scene: THREE.Group) {
+    this.camera.rotateY(Math.PI);
+    this.camera.position.set(0, 6.5, -7);
+    scene.add(this.camera);
+    this.camera.lookAt(scene.position.clone().add(new Vector3(0, 6, -5)));
+  }
+
   switchToClip(name: string) {
-    if (!this.character || !this.mixer) {
+    if (!this.model || !this.mixer) {
       return;
     }
-    const animation = THREE.AnimationClip.findByName(this.character?.animations, name);
+    const animation = AnimationClip.findByName(this.model.animations, name);
     if (!animation) {
       throw new Error(`No clip found with name ${name}`);
     }
     this.mixer.clipAction(animation).play();
   }
 
-  update(delta: number, keyState: Map<string, boolean>) {
-    if (!this.character || !this.mixer) {
+  update(delta: number) {
+    if (!this.modelPath || !this.mixer || !this.scene) {
       return;
     }
 
-    const direction = DIRECTIONS.find((d) => {
-      return keyState.get(d.toLowerCase());
-    });
-
-    const nextAnimationName = direction
-      ? keyState.get('shift')
-        ? 'Gallop'
-        : 'Walk'
-      : this.defaultAnimationName;
+    const isRunning = this.keyboardController.isPressed(SHIFT);
+    const isMovingForward = this.keyboardController.isPressed(...DIRECTION_FORWARD);
+    const isTurningLeft = this.keyboardController.isPressed(...DIRECTION_LEFT);
+    const isTurningRight = this.keyboardController.isPressed(...DIRECTION_RIGHT);
+    // const isJumping = this.keyboardController.isPressed(SPACE);
+    const nextAnimationName = !this.isMoving
+      ? this.defaultAnimationName
+      : isRunning
+      ? 'Gallop'
+      : 'Walk';
 
     if (this.animationName !== nextAnimationName) {
       const toPlay = this._animations.get(nextAnimationName);
@@ -148,23 +173,19 @@ export class Player {
       }
     }
 
-    if (direction) {
-      this.character.scene.position.z +=
-        (keyState.get('shift') ? this.runVelocity : this.walkVelocity) *
-        delta *
-        (direction === DIRECTION_FORWARD ? -1 : 1);
-      if (direction === DIRECTION_BACKWARD && this.character.scene.rotation.y !== Math.PI) {
-        this.character.scene.rotation.y = Math.PI;
+    if (this.isMoving) {
+      const velocityModifier = isRunning ? this.velocityMultiplier : 1;
+      const velocity = this.velocity * velocityModifier;
+      if (isTurningLeft) {
+        this.scene.rotation.y += this.turnVelocity * velocityModifier;
       }
-      if (direction === DIRECTION_FORWARD && this.character.scene.rotation.y === Math.PI) {
-        this.character.scene.rotation.y = 0;
+      if (isTurningRight) {
+        this.scene.rotation.y -= this.turnVelocity * velocityModifier;
       }
-      // if (direction === DIRECTION_LEFT) {
-      //   this.character.scene.rotation.y += this.turnVelocity;
-      // }
-      // if (direction === DIRECTION_RIGHT) {
-      //   this.character.scene.rotation.y -= this.turnVelocity;
-      // }
+      if (isMovingForward) {
+        this.scene.position.x += Math.sin(this.scene.rotation.y) * velocity;
+        this.scene.position.z += Math.cos(this.scene.rotation.y) * velocity;
+      }
     }
 
     this.mixer.update(delta);

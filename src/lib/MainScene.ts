@@ -1,6 +1,3 @@
-import type { Player } from './Player';
-import { ALT, CTRL, KEYS, SHIFT } from '../utils/keys';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import {
   AmbientLight,
   Clock,
@@ -11,17 +8,19 @@ import {
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
-  Vector3
+  Vector3,
+  Raycaster,
+  Plane
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
+import { Fox } from './Fox';
+import type { Player } from './Player';
+import { KEYS } from '../utils/keys';
+import { MouseController } from './MouseController';
+import getMousePositionInWorld from '../utils/getMousePositionInWorld';
+
 const maxZoomOut = 1000;
-
-const KeyState = new Map(KEYS.map((key) => [key, false]));
-
-type Animatable = {
-  update: (delta: number, keyState?: typeof KeyState) => void;
-};
 
 type MainSceneOptions = {
   root: HTMLCanvasElement;
@@ -32,29 +31,37 @@ type MainSceneOptions = {
 export class MainScene {
   // Scene
   protected scene = new Scene();
+  protected camera: PerspectiveCamera;
 
   private clock: Clock = new Clock();
   protected renderer!: WebGLRenderer;
-  protected camera!: PerspectiveCamera;
-  protected orbitControls!: OrbitControls;
+  // protected camera!: PerspectiveCamera;
+  protected mouseController: MouseController;
 
   private keyState = new Map(KEYS.map((key) => [key, false]));
-  private _characters: Animatable[] = [];
+  private character: Player;
 
   constructor({ root, width, height }: MainSceneOptions) {
     this.initRenderer(root);
     this.initScene();
-    this.initCamera();
-    this.initOrbitControls();
+
+    this.mouseController = new MouseController();
+
+    this.camera = this.initCamera();
+
     this.initLights();
     this.initTerrain();
     this.initEnvironment();
 
     this.resize(width, height);
 
-    this.initScreenEventListeners();
+    this.initEventListeners();
 
     this.addFloor();
+
+    this.character = new Fox({ camera: this.camera });
+    this.initCharacter();
+
     this.animate();
   }
 
@@ -70,32 +77,17 @@ export class MainScene {
     // this.scene.rotateY(Math.PI / -1);
   }
   initCamera() {
-    this.camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, maxZoomOut);
-    this.camera.position.z = 0;
-    this.camera.position.y = 20;
-    this.camera.position.x = 100;
-  }
-  initOrbitControls() {
-    this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.orbitControls.enableDamping = true;
-    this.orbitControls.dampingFactor = 0.04;
-    this.orbitControls.minDistance = 1;
-    this.orbitControls.maxDistance = maxZoomOut;
-    this.orbitControls.enableRotate = true;
-    this.orbitControls.enableZoom = true;
-    this.orbitControls.maxPolarAngle = Math.PI / 2.5;
-    this.orbitControls.update();
+    const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, maxZoomOut);
+    // this.camera.position.z = 0;
+    // this.camera.position.y = 2;
+    // this.camera.position.x = 100;
+    return camera;
   }
 
   initLights() {
-    // const directionalLight = new DirectionalLight(0x9090aa);
     const hemisphereLight = new HemisphereLight(0xffffff, 0xffffff);
-    // const ambientLight = new AmbientLight(0xffffff);
-    // directionalLight.position.set(-10, 10, -10).normalize();
-    // this.scene.add(directionalLight);
     hemisphereLight.position.set(1, 1, 1);
     this.scene.add(hemisphereLight);
-    // this.scene.add(ambientLight);
     const ambient = new AmbientLight(0xa0a0fc, 0.82);
     this.scene.add(ambient);
 
@@ -142,7 +134,6 @@ export class MainScene {
       loader.load(
         'assets/models/Trees.glb',
         (gltf) => {
-          console.info(gltf);
           const terrain = gltf.scene;
           const scale = 0.1;
           terrain.scale.set(scale, scale, scale);
@@ -171,30 +162,28 @@ export class MainScene {
     this.scene.add(new GridHelper(50, 50));
   }
 
-  setCameraPosition(x: number, y: number, z: number) {
-    this.camera.position.x = x;
-    this.camera.position.y = y;
-    this.camera.position.z = z;
-  }
+  // setCameraPosition(x: number, y: number, z: number) {
+  //   this.camera.position.x = x;
+  //   this.camera.position.y = y;
+  //   this.camera.position.z = z;
+  // }
 
   private onWindowResize() {
     this.resize(window.innerWidth, window.innerHeight);
   }
-  initScreenEventListeners() {
+  initEventListeners() {
     window.addEventListener('resize', this.onWindowResize.bind(this));
-    document.addEventListener('keydown', this.onKeyDown.bind(this));
-    document.addEventListener('keyup', this.onKeyUp.bind(this));
   }
 
   animate() {
+    const delta = this.clock.getDelta();
     requestAnimationFrame(() => this.animate());
-    this._characters.forEach((character) => {
-      character.update(this.clock.getDelta(), this.keyState);
-    });
-    // const character = this._characters[0];
-    // if (character?.scene?.position) {
-    //   this.camera.position.copy(character.scene?.position);
-    //   this.camera.position.add(new Vector3(0, 10, 20));
+    this.character.update(delta);
+    // if (this.character.scene?.position) {
+    //   const cameraOffset = new Vector3(0, 12, 7);
+    //   this.camera.position.copy(this.character.scene?.position.clone().add(cameraOffset));
+    //   // this.camera.position.add(cameraOffset);
+    //   this.camera.lookAt(this.character.scene?.position.clone().add(new Vector3(0, 0, -20)));
     // }
     this.render();
   }
@@ -221,41 +210,18 @@ export class MainScene {
     // this.render();
   }
 
-  render() {
-    this.renderer.render(this.scene, this.camera);
-  }
-
-  private setKeyStateFromKeyboardEvent(event: KeyboardEvent, state: 'up' | 'down') {
-    const { key, shiftKey, ctrlKey, altKey } = event;
-    this.keyState.set(key.toLowerCase(), state === 'down');
-    this.keyState.set(SHIFT, shiftKey);
-    this.keyState.set(ALT, altKey);
-    this.keyState.set(CTRL, ctrlKey);
-  }
-  onKeyDown(event: KeyboardEvent) {
-    this.setKeyStateFromKeyboardEvent(event, 'down');
-  }
-  onKeyUp(event: KeyboardEvent) {
-    this.setKeyStateFromKeyboardEvent(event, 'up');
-  }
-
-  addCharacter(character: Player, position?: Vector3) {
-    if (!character.loaded) {
-      return character.on?.('loaded', () => {
-        this.addCharacter(character);
+  private initCharacter() {
+    if (!this.character.loaded || !this.character.scene) {
+      this.character.addEventListener('loaded', () => {
+        this.initCharacter();
       });
     }
-    if (character.scene) {
-      const { x = 0, y = 0, z = 30 } = position || {};
-      if (position) {
-        character.scene.position.set(x, y, z);
-      }
-      this.scene.add(character.scene);
-      this._characters.push(character);
-      this.animate();
+    if (this.character.scene) {
+      this.scene.add(this.character.scene);
     }
   }
-  get characters() {
-    return this._characters;
+
+  render() {
+    this.renderer.render(this.scene, this.camera);
   }
 }
