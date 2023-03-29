@@ -13,8 +13,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { Fox } from './Fox';
 import type { Player } from './Player';
-import { KEYS } from '../utils/keys';
-import { MouseController } from './MouseController';
 
 const maxZoomOut = 1000;
 
@@ -29,10 +27,10 @@ export class MainScene {
   protected scene = new Scene();
   protected camera: PerspectiveCamera;
 
-  private clock: Clock = new Clock();
+  protected clock: Clock = new Clock();
   protected renderer!: WebGLRenderer;
 
-  private character: Player;
+  protected character: Player;
 
   constructor({ root, width, height }: MainSceneOptions) {
     this.initRenderer(root);
@@ -65,13 +63,9 @@ export class MainScene {
 
   initScene() {
     this.scene.background = new Color(0xffffff);
-    // this.scene.rotateY(Math.PI / -1);
   }
   initCamera() {
     const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 1, maxZoomOut);
-    // this.camera.position.z = 0;
-    // this.camera.position.y = 2;
-    // this.camera.position.x = 100;
     return camera;
   }
 
@@ -143,7 +137,7 @@ export class MainScene {
 
   async initTerrain() {
     try {
-      // await this.loadIsland();
+      await this.loadIsland();
     } catch (error) {
       console.error(error);
     }
@@ -152,12 +146,6 @@ export class MainScene {
   initEnvironment() {
     this.scene.add(new GridHelper(50, 50));
   }
-
-  // setCameraPosition(x: number, y: number, z: number) {
-  //   this.camera.position.x = x;
-  //   this.camera.position.y = y;
-  //   this.camera.position.z = z;
-  // }
 
   private onWindowResize() {
     this.resize(window.innerWidth, window.innerHeight);
@@ -170,12 +158,6 @@ export class MainScene {
     const delta = this.clock.getDelta();
     requestAnimationFrame(() => this.animate());
     this.character.update(delta);
-    // if (this.character.scene?.position) {
-    //   const cameraOffset = new Vector3(0, 12, 7);
-    //   this.camera.position.copy(this.character.scene?.position.clone().add(cameraOffset));
-    //   // this.camera.position.add(cameraOffset);
-    //   this.camera.lookAt(this.character.scene?.position.clone().add(new Vector3(0, 0, -20)));
-    // }
     this.render();
   }
 
