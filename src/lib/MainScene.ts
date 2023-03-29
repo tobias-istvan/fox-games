@@ -7,10 +7,7 @@ import {
   HemisphereLight,
   PerspectiveCamera,
   Scene,
-  WebGLRenderer,
-  Vector3,
-  Raycaster,
-  Plane
+  WebGLRenderer
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
@@ -18,7 +15,6 @@ import { Fox } from './Fox';
 import type { Player } from './Player';
 import { KEYS } from '../utils/keys';
 import { MouseController } from './MouseController';
-import getMousePositionInWorld from '../utils/getMousePositionInWorld';
 
 const maxZoomOut = 1000;
 
@@ -35,17 +31,12 @@ export class MainScene {
 
   private clock: Clock = new Clock();
   protected renderer!: WebGLRenderer;
-  // protected camera!: PerspectiveCamera;
-  protected mouseController: MouseController;
 
-  private keyState = new Map(KEYS.map((key) => [key, false]));
   private character: Player;
 
   constructor({ root, width, height }: MainSceneOptions) {
     this.initRenderer(root);
     this.initScene();
-
-    this.mouseController = new MouseController();
 
     this.camera = this.initCamera();
 

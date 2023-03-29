@@ -5,7 +5,6 @@ import { Events } from './Events';
 import { DIRECTION_FORWARD, DIRECTION_LEFT, DIRECTION_RIGHT, SHIFT, SPACE } from '../utils/keys';
 import { AnimationClip, AnimationMixer, EventDispatcher, Vector3 } from 'three';
 import { KeyboardController } from './KeyboardController';
-import { MouseController } from './MouseController';
 
 export type PlayerOptions = {
   name: string;
@@ -29,7 +28,7 @@ export class Player extends EventDispatcher {
 
   private loader: GLTFLoader = new GLTFLoader();
   private mixer: THREE.AnimationMixer | undefined;
-  protected scene: THREE.Group | undefined;
+  protected _scene: THREE.Group | undefined;
   protected _loaded = false;
 
   readonly name: string;
@@ -71,6 +70,9 @@ export class Player extends EventDispatcher {
     return [...DIRECTION_FORWARD, ...DIRECTION_LEFT, ...DIRECTION_RIGHT].some((key) =>
       this.keyboardController.isPressed(key)
     );
+  }
+  get scene() {
+    return this._scene;
   }
 
   loadModel(modelPath: string) {
@@ -121,8 +123,8 @@ export class Player extends EventDispatcher {
         object.castShadow = true;
       }
     });
-    this.scene = scene;
-    return this.scene;
+    this._scene = scene;
+    return this._scene;
   }
 
   setCamera(scene: THREE.Group) {
