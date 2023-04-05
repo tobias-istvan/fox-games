@@ -30,7 +30,6 @@
 	"type": "module",
 	"dependencies": {
 		"@types/three": "^0.149.0",
-		"three": "^0.150.1",
-		"three.terrain.js": "^2.0.0"
+		"three": "^0.150.1"
 	}
 }
