@@ -14,10 +14,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export class GameScene {
   protected clock: Clock;
-  protected scene: Scene;
+  public scene: Scene;
   protected renderer: WebGLRenderer;
   protected camera: PerspectiveCamera;
   protected controls: OrbitControls;
+
   constructor(canvas: HTMLCanvasElement) {
     this.clock = new Clock();
     this.scene = new Scene();
@@ -31,6 +32,7 @@ export class GameScene {
 
     this.tick();
   }
+
   render() {
     this.renderer.render(this.scene, this.camera);
   }
@@ -43,18 +45,16 @@ export class GameScene {
     return renderer;
   }
   initCamera(addControls?: boolean) {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const aspect = width / height;
+    const aspect = window.innerWidth / window.innerHeight;
     const camera = new PerspectiveCamera(
       // field of view
-      90,
+      100,
       // aspect ratio
       aspect,
       // near plane: it's low since we want our mesh to be visible even from very close
       0.01,
       // far plane: how far we're rendering
-      20
+      60
     );
 
     // Position the camera a bit higher on the y axis and a bit further back from the center
@@ -74,6 +74,8 @@ export class GameScene {
   initControls(camera: Camera, domElement?: HTMLElement) {
     const controls = new OrbitControls(camera, domElement);
     controls.enableDamping = true;
+    controls.maxDistance = 20;
+    controls.minDistance = 1;
     return controls;
   }
   initLights(scene: Scene) {

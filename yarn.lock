@@ -250,6 +250,11 @@
   resolved "https://registry.yarnpkg.com/@types/cookie/-/cookie-0.5.1.tgz#b29aa1f91a59f35e29ff8f7cb24faf1a3a750554"
   integrity sha512-COUnqfB2+ckwXXSFInsFdOAWQzCCx+a5hq2ruyj+Vjund94RJQd4LG2u9hnvJrTgunKAaax7ancBYlDrNYxA0g==
 
+"@types/dat.gui@^0.7.9":
+  version "0.7.9"
+  resolved "https://pkgs.dev.azure.com/serko/_packaging/serko-npm/npm/registry/@types/dat.gui/-/dat.gui-0.7.9.tgz#9e16985a0a6b4ef652c53212ee813e5968aff9a8"
+  integrity sha1-nhaYWgprTvZSxTIS7oE+WWiv+ag=
+
 "@types/json-schema@^7.0.9":
   version "7.0.11"
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.11.tgz#d421b6c527a3037f7c84433fd2c4229e016863d3"
@@ -506,6 +511,11 @@ cross-spawn@^7.0.2:
     path-key "^3.1.0"
     shebang-command "^2.0.0"
     which "^2.0.1"
+
+dat.gui@^0.7.9:
+  version "0.7.9"
+  resolved "https://pkgs.dev.azure.com/serko/_packaging/serko-npm/npm/registry/dat.gui/-/dat.gui-0.7.9.tgz#860cab06053b028e327820eabdf25a13cf07b17e"
+  integrity sha1-hgyrBgU7Ao4yeCDqvfJaE88HsX4=
 
 debug@^4.1.1, debug@^4.3.2, debug@^4.3.4:
   version "4.3.4"

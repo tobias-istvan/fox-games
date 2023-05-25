@@ -1,7 +1,6 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import { Events } from './Events';
 import { DIRECTION_FORWARD, DIRECTION_LEFT, DIRECTION_RIGHT, SHIFT } from '../utils/keys';
 import { AnimationClip, AnimationMixer, EventDispatcher, Vector3 } from 'three';
 import { KeyboardController } from './KeyboardController';
@@ -13,7 +12,6 @@ export type PlayerOptions = {
   camera: THREE.Camera;
 };
 export class Player extends EventDispatcher {
-  events = new Events(this);
   fadeDuration = 0.2;
 
   private keyboardController: KeyboardController;

@@ -1,20 +1,11 @@
 <script lang="ts">
   import { GameScene } from '$lib/GameScene';
-  import { Island } from '$lib/Island';
   import { onMount } from 'svelte';
   let el: HTMLCanvasElement;
   let scene: GameScene;
 
   onMount(() => {
     scene = new GameScene(el);
-    const island = new Island('/assets/island-02.png');
-
-    island.addEventListener('ready', () => {
-      if (!island.plane) {
-        return;
-      }
-      scene.scene.add(island.plane);
-    });
   });
 </script>
 
